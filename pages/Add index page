@@ -1,0 +1,26 @@
+export default async function handler(req, res) {
+  try {
+    const { q = "" } = req.query;
+    if (!q.trim()) return res.status(400).json({ error: "Missing q" });
+
+    const key = process.env.TMDB_API_KEY;
+    if (!key) return res.status(500).json({ error: "Missing TMDB key" });
+
+    const url = `https://api.themoviedb.org/3/search/movie?api_key=${key}&language=en-US&query=${encodeURIComponent(q)}&include_adult=false`;
+    const r = await fetch(url);
+    const data = await r.json();
+
+    // index.js'in şu anki yapısına UYUMLU alanlar döndürüyoruz:
+    const results = (data.results || []).slice(0, 12).map(m => ({
+      id: m.id,
+      title: m.title,
+      release_date: m.release_date || "",
+      poster_path: m.poster_path || null
+    }));
+
+    res.status(200).json({ results });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "search-text-failed" });
+  }
+}
